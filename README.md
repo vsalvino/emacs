@@ -5,6 +5,8 @@ This is an experimental build of Emacs for Windows 10/11 (20H1 and
 higher) with a dark mode titlebar. See the `vsalvino/darkmode` branch
 in this repository.
 
+![image](https://user-images.githubusercontent.com/13453401/138581502-b496fe4e-5a49-4017-bac9-d8173469e0e8.png)
+
 Caveats
 -------
 As this is a proof of concept, there are some caveats:
