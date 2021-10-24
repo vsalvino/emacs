@@ -73,6 +73,13 @@ along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.  */
 #include <imm.h>
 #include <windowsx.h>
 
+/* darkmode */
+#include <dwmapi.h>
+#ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
+#define DWMWA_USE_IMMERSIVE_DARK_MODE 20
+#endif
+/* darkmode */
+
 #ifndef FOF_NO_CONNECTED_ELEMENTS
 #define FOF_NO_CONNECTED_ELEMENTS 0x2000
 #endif
@@ -2389,6 +2396,13 @@ w32_createwindow (struct frame *f, int *coords)
 
       /* Enable drag-n-drop.  */
       DragAcceptFiles (hwnd, TRUE);
+
+      /* Enable darkmode */
+      BOOL isDarkMode = TRUE;
+      DwmSetWindowAttribute(hwnd,
+			    DWMWA_USE_IMMERSIVE_DARK_MODE,
+			    &isDarkMode,
+			    sizeof(isDarkMode));
 
       /* Do this to discard the default setting specified by our parent. */
       ShowWindow (hwnd, SW_HIDE);
