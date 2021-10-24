@@ -2397,12 +2397,23 @@ w32_createwindow (struct frame *f, int *coords)
       /* Enable drag-n-drop.  */
       DragAcceptFiles (hwnd, TRUE);
 
-      /* Enable darkmode */
-      BOOL isDarkMode = TRUE;
-      DwmSetWindowAttribute(hwnd,
-			    DWMWA_USE_IMMERSIVE_DARK_MODE,
-			    &isDarkMode,
-			    sizeof(isDarkMode));
+      /* Enable darkmode on Windows 10 build 19041 and higher. */
+      if (w32_major_version >= 10 && w32_build_number >= 19041) {
+	/*
+	  TODO: Check if system is using darkmode.
+	  This can be accomplished using the Windows Registry:
+	  * Key:  HKEY_CIRRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize
+	  * Name: AppsUseLightTheme
+	 */
+	BOOL isDarkMode = TRUE;
+	if(isDarkMode) {
+	  /* Set the titlebar to system dark theme. */
+	  DwmSetWindowAttribute(hwnd,
+				DWMWA_USE_IMMERSIVE_DARK_MODE,
+				&isDarkMode,
+				sizeof(isDarkMode));
+	}
+      }
 
       /* Do this to discard the default setting specified by our parent. */
       ShowWindow (hwnd, SW_HIDE);
