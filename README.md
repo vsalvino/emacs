@@ -25,7 +25,8 @@ As this is a proof of concept, there are some caveats:
 
 Download
 --------
-Download a build from the releases section. Since I use this as my
+Download `emacs-darkmode.zip` from the releases section, extract to
+your machine, and launch `bin/runemacs.exe`. Since I use this as my
 daily driver I have intentionally compiled the build with no
 debugging, high optimization, and only for Intel Skylake (6th-ish gen)
 processors and higher.
