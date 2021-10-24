@@ -10,10 +10,13 @@ $env:MSYSTEM = 'MINGW64'  # Start a 64 bit Mingw environment
 # Set desired gcc flags.
 $env:CFLAGS = $CFLAGS = '-O3 -g0 -march=skylake'
 
+# Get current git hash ID.
+$gitHash = (& git rev-parse --short HEAD).Trim()
+
 # File paths, swapped to unix format.
 $win_srcdir = $($PSScriptRoot)
 $win_blddir = $(Join-Path $win_srcdir "_build")
-$win_insdir = $(Join-Path $win_srcdir "_install")
+$win_insdir = $(Join-Path $win_srcdir "_install" $gitHash)
 New-Item -Type Directory -ErrorAction Ignore -Path "$win_blddir"
 New-Item -Type Directory -ErrorAction Ignore -Path "$win_insdir"
 $unx_srcdir = $win_srcdir -replace "\\","/" -replace "C\:","/c"
