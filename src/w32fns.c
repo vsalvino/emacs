@@ -73,8 +73,9 @@ along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.  */
 #include <imm.h>
 #include <windowsx.h>
 
-/* darkmode */
+/* For Windows darkmode */
 #include <dwmapi.h>
+#define DARK_MODE_APP_NAME L"DarkMode_Explorer"
 #ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
 #define DWMWA_USE_IMMERSIVE_DARK_MODE 20
 #endif
@@ -192,6 +193,11 @@ typedef BOOL (WINAPI *IsDebuggerPresent_Proc) (void);
 typedef HRESULT (WINAPI *SetThreadDescription_Proc)
   (HANDLE hThread, PCWSTR lpThreadDescription);
 
+/* darkmode. */
+typedef HRESULT (WINAPI * SetWindowTheme_Proc)
+  (IN HWND hwnd, IN LPCWSTR pszSubAppName, IN LPCWSTR pszSubIdList);
+/* darkmode */
+
 TrackMouseEvent_Proc track_mouse_event_fn = NULL;
 ImmGetCompositionString_Proc get_composition_string_fn = NULL;
 ImmGetContext_Proc get_ime_context_fn = NULL;
@@ -206,6 +212,9 @@ EnumDisplayMonitors_Proc enum_display_monitors_fn = NULL;
 GetTitleBarInfo_Proc get_title_bar_info_fn = NULL;
 IsDebuggerPresent_Proc is_debugger_present = NULL;
 SetThreadDescription_Proc set_thread_description = NULL;
+/* darkmode */
+SetWindowTheme_Proc SetWindowTheme_fn = NULL;
+/* darkmode */
 
 extern AppendMenuW_Proc unicode_append_menu;
 
@@ -2286,10 +2295,42 @@ w32_init_class (HINSTANCE hinst)
     }
 }
 
+/*
+  darkmode
+  Applies the Windows system theme (light or dark) to a window handle.
+ */
+static void
+w32_applytheme(HWND hwnd)
+{
+  /* Enable darkmode on Windows 10 build 19041 and higher. */
+  if (w32_major_version >= 10 && w32_build_number >= 19041) {
+    /*
+      TODO: Check if system is using dark mode.
+      This can be accomplished using the Windows Registry:
+      * Key:  HKEY_CIRRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize
+      * Name: AppsUseLightTheme
+      * Value: 0 or 1 (0 for dark mode)
+      */
+    BOOL isDarkMode = TRUE;
+    if(isDarkMode) {
+      /* Set window theme to that of a built-in Windows app (Explorer)
+	 because it has dark scroll bars and other UI elements. */
+      if(SetWindowTheme_fn) {
+	SetWindowTheme_fn(hwnd, DARK_MODE_APP_NAME, NULL);
+      }
+      /* Set the titlebar to system dark mode. */
+      DwmSetWindowAttribute(hwnd,
+			    DWMWA_USE_IMMERSIVE_DARK_MODE,
+			    &isDarkMode,
+			    sizeof(isDarkMode));
+    }
+  }
+}
+
 static HWND
 w32_createvscrollbar (struct frame *f, struct scroll_bar * bar)
 {
-  return CreateWindow ("SCROLLBAR", "",
+  HWND hwnd = CreateWindow ("SCROLLBAR", "",
 		       /* Clip siblings so we don't draw over child
 			  frames.  Apparently this is not always
 			  sufficient so we also try to make bar windows
@@ -2298,12 +2339,16 @@ w32_createvscrollbar (struct frame *f, struct scroll_bar * bar)
 		       /* Position and size of scroll bar.  */
 		       bar->left, bar->top, bar->width, bar->height,
 		       FRAME_W32_WINDOW (f), NULL, hinst, NULL);
+  if(hwnd) {
+    w32_applytheme(hwnd);
+  }
+  return hwnd;
 }
 
 static HWND
 w32_createhscrollbar (struct frame *f, struct scroll_bar * bar)
 {
-  return CreateWindow ("SCROLLBAR", "",
+  HWND hwnd = CreateWindow ("SCROLLBAR", "",
 		       /* Clip siblings so we don't draw over child
 			  frames.  Apparently this is not always
 			  sufficient so we also try to make bar windows
@@ -2312,6 +2357,10 @@ w32_createhscrollbar (struct frame *f, struct scroll_bar * bar)
 		       /* Position and size of scroll bar.  */
 		       bar->left, bar->top, bar->width, bar->height,
 		       FRAME_W32_WINDOW (f), NULL, hinst, NULL);
+  if(hwnd) {
+    w32_applytheme(hwnd);
+  }
+  return hwnd;
 }
 
 static void
@@ -2397,23 +2446,8 @@ w32_createwindow (struct frame *f, int *coords)
       /* Enable drag-n-drop.  */
       DragAcceptFiles (hwnd, TRUE);
 
-      /* Enable darkmode on Windows 10 build 19041 and higher. */
-      if (w32_major_version >= 10 && w32_build_number >= 19041) {
-	/*
-	  TODO: Check if system is using darkmode.
-	  This can be accomplished using the Windows Registry:
-	  * Key:  HKEY_CIRRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize
-	  * Name: AppsUseLightTheme
-	 */
-	BOOL isDarkMode = TRUE;
-	if(isDarkMode) {
-	  /* Set the titlebar to system dark theme. */
-	  DwmSetWindowAttribute(hwnd,
-				DWMWA_USE_IMMERSIVE_DARK_MODE,
-				&isDarkMode,
-				sizeof(isDarkMode));
-	}
-      }
+      /* Enable system light/dark theme. */
+      w32_applytheme(hwnd);
 
       /* Do this to discard the default setting specified by our parent. */
       ShowWindow (hwnd, SW_HIDE);
@@ -11052,6 +11086,11 @@ globals_of_w32fns (void)
     get_proc_addr (hm_kernel32, "IsDebuggerPresent");
   set_thread_description = (SetThreadDescription_Proc)
     get_proc_addr (hm_kernel32, "SetThreadDescription");
+
+  /* Load uxtheme for darkmode */
+  HMODULE uxtheme_lib = GetModuleHandle ("uxtheme.dll");
+  SetWindowTheme_fn = (SetWindowTheme_Proc)
+    get_proc_addr (uxtheme_lib, "SetWindowTheme");
 
   except_code = 0;
   except_addr = 0;
