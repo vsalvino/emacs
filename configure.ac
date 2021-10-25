@@ -2161,9 +2161,6 @@ if test "${HAVE_W32}" = "yes"; then
     fi
     W32_LIBS="$W32_LIBS -lwinmm -lusp10 -lgdi32 -lcomdlg32"
     W32_LIBS="$W32_LIBS -lmpr -lwinspool -lole32 -lcomctl32"
-    # darkmode
-    W32_LIBS="$W32_LIBS -ldwmapi"
-    # darkmode
     W32_RES_LINK="\$(EMACSRES)"
     CLIENTRES="emacsclient.res"
     CLIENTW="emacsclientw\$(EXEEXT)"

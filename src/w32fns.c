@@ -74,7 +74,6 @@ along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.  */
 #include <windowsx.h>
 
 /* For Windows darkmode */
-#include <dwmapi.h>
 #define DARK_MODE_APP_NAME L"DarkMode_Explorer"
 #ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
 #define DWMWA_USE_IMMERSIVE_DARK_MODE 20
@@ -196,6 +195,8 @@ typedef HRESULT (WINAPI *SetThreadDescription_Proc)
 /* darkmode. */
 typedef HRESULT (WINAPI * SetWindowTheme_Proc)
   (IN HWND hwnd, IN LPCWSTR pszSubAppName, IN LPCWSTR pszSubIdList);
+typedef HRESULT (WINAPI * DwmSetWindowAttribute_Proc)
+  (HWND hwnd, DWORD dwAttribute, IN LPCVOID pvAttribute, DWORD cbAttribute);
 /* darkmode */
 
 TrackMouseEvent_Proc track_mouse_event_fn = NULL;
@@ -214,6 +215,7 @@ IsDebuggerPresent_Proc is_debugger_present = NULL;
 SetThreadDescription_Proc set_thread_description = NULL;
 /* darkmode */
 SetWindowTheme_Proc SetWindowTheme_fn = NULL;
+DwmSetWindowAttribute_Proc DwmSetWindowAttribute_fn = NULL;
 /* darkmode */
 
 extern AppendMenuW_Proc unicode_append_menu;
@@ -2319,10 +2321,12 @@ w32_applytheme(HWND hwnd)
 	SetWindowTheme_fn(hwnd, DARK_MODE_APP_NAME, NULL);
       }
       /* Set the titlebar to system dark mode. */
-      DwmSetWindowAttribute(hwnd,
-			    DWMWA_USE_IMMERSIVE_DARK_MODE,
-			    &isDarkMode,
-			    sizeof(isDarkMode));
+      if (DwmSetWindowAttribute_fn) {
+	DwmSetWindowAttribute_fn(hwnd,
+				 DWMWA_USE_IMMERSIVE_DARK_MODE,
+				 &isDarkMode,
+				 sizeof(isDarkMode));
+      }
     }
   }
 }
@@ -11087,8 +11091,11 @@ globals_of_w32fns (void)
   set_thread_description = (SetThreadDescription_Proc)
     get_proc_addr (hm_kernel32, "SetThreadDescription");
 
-  /* Load uxtheme for darkmode */
-  HMODULE uxtheme_lib = GetModuleHandle ("uxtheme.dll");
+  /* Load dwmapi and uxtheme for darkmode */
+  HMODULE dwmapi_lib = LoadLibrary("dwmapi.dll");
+  DwmSetWindowAttribute_fn = (DwmSetWindowAttribute_Proc)
+    get_proc_addr (dwmapi_lib, "DwmSetWindowAttribute");
+  HMODULE uxtheme_lib = LoadLibrary("uxtheme.dll");
   SetWindowTheme_fn = (SetWindowTheme_Proc)
     get_proc_addr (uxtheme_lib, "SetWindowTheme");
 
