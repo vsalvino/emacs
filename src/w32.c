@@ -2823,6 +2823,13 @@ sys_putenv (char *str)
 LPBYTE
 w32_get_resource (const char *key, LPDWORD lpdwtype)
 {
+  return w32_query_registry(REG_ROOT, key, lpdwtype);
+}
+
+/* Enables reading any key/name from the Windows Registry */
+LPBYTE
+w32_query_registry (const char *root, const char *key, LPDWORD lpdwtype)
+{
   LPBYTE lpvalue;
   HKEY hrootkey = NULL;
   DWORD cbData;
@@ -2830,7 +2837,7 @@ w32_get_resource (const char *key, LPDWORD lpdwtype)
   /* Check both the current user and the local machine to see if
      we have any resources.  */
 
-  if (RegOpenKeyEx (HKEY_CURRENT_USER, REG_ROOT, 0, KEY_READ, &hrootkey) == ERROR_SUCCESS)
+  if (RegOpenKeyEx (HKEY_CURRENT_USER, root, 0, KEY_READ, &hrootkey) == ERROR_SUCCESS)
     {
       lpvalue = NULL;
 
@@ -2847,7 +2854,7 @@ w32_get_resource (const char *key, LPDWORD lpdwtype)
       RegCloseKey (hrootkey);
     }
 
-  if (RegOpenKeyEx (HKEY_LOCAL_MACHINE, REG_ROOT, 0, KEY_READ, &hrootkey) == ERROR_SUCCESS)
+  if (RegOpenKeyEx (HKEY_LOCAL_MACHINE, root, 0, KEY_READ, &hrootkey) == ERROR_SUCCESS)
     {
       lpvalue = NULL;
 

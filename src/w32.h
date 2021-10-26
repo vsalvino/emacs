@@ -164,6 +164,9 @@ extern void reset_standard_handles (int in, int out,
 /* Return the string resource associated with KEY of type TYPE.  */
 extern LPBYTE w32_get_resource (const char * key, LPDWORD type);
 
+/* Utility to query [HKCU|HKLM]\root\key from the Windows Registry */
+extern LPBYTE w32_query_registry (const char * root, const char * key, LPDWORD type);
+
 extern void release_listen_threads (void);
 extern void init_ntproc (int);
 extern void term_ntproc (int);

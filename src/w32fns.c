@@ -73,12 +73,14 @@ along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.  */
 #include <imm.h>
 #include <windowsx.h>
 
-/* For Windows darkmode */
+/*
+  Internal/undocumented constants for Windows Dark mode.
+  See: https://github.com/microsoft/WindowsAppSDK/issues/41
+*/
 #define DARK_MODE_APP_NAME L"DarkMode_Explorer"
 #ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
 #define DWMWA_USE_IMMERSIVE_DARK_MODE 20
 #endif
-/* darkmode */
 
 #ifndef FOF_NO_CONNECTED_ELEMENTS
 #define FOF_NO_CONNECTED_ELEMENTS 0x2000
@@ -192,12 +194,10 @@ typedef BOOL (WINAPI *IsDebuggerPresent_Proc) (void);
 typedef HRESULT (WINAPI *SetThreadDescription_Proc)
   (HANDLE hThread, PCWSTR lpThreadDescription);
 
-/* darkmode. */
 typedef HRESULT (WINAPI * SetWindowTheme_Proc)
   (IN HWND hwnd, IN LPCWSTR pszSubAppName, IN LPCWSTR pszSubIdList);
 typedef HRESULT (WINAPI * DwmSetWindowAttribute_Proc)
   (HWND hwnd, DWORD dwAttribute, IN LPCVOID pvAttribute, DWORD cbAttribute);
-/* darkmode */
 
 TrackMouseEvent_Proc track_mouse_event_fn = NULL;
 ImmGetCompositionString_Proc get_composition_string_fn = NULL;
@@ -213,10 +213,8 @@ EnumDisplayMonitors_Proc enum_display_monitors_fn = NULL;
 GetTitleBarInfo_Proc get_title_bar_info_fn = NULL;
 IsDebuggerPresent_Proc is_debugger_present = NULL;
 SetThreadDescription_Proc set_thread_description = NULL;
-/* darkmode */
 SetWindowTheme_Proc SetWindowTheme_fn = NULL;
 DwmSetWindowAttribute_Proc DwmSetWindowAttribute_fn = NULL;
-/* darkmode */
 
 extern AppendMenuW_Proc unicode_append_menu;
 
@@ -269,6 +267,9 @@ DWORD_PTR syspage_mask = 0;
 int w32_major_version;
 int w32_minor_version;
 int w32_build_number;
+
+/* If the OS is set to use dark mode. */
+BOOL w32_darkmode = FALSE;
 
 /* Distinguish between Windows NT and Windows 95.  */
 int os_subtype;
@@ -2297,36 +2298,23 @@ w32_init_class (HINSTANCE hinst)
     }
 }
 
-/*
-  darkmode
-  Applies the Windows system theme (light or dark) to a window handle.
- */
+/* Applies the Windows system theme (light or dark) to a window handle. */
 static void
 w32_applytheme(HWND hwnd)
 {
-  /* Enable darkmode on Windows 10 build 19041 and higher. */
-  if (w32_major_version >= 10 && w32_build_number >= 19041) {
-    /*
-      TODO: Check if system is using dark mode.
-      This can be accomplished using the Windows Registry:
-      * Key:  HKEY_CIRRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize
-      * Name: AppsUseLightTheme
-      * Value: 0 or 1 (0 for dark mode)
-      */
-    BOOL isDarkMode = TRUE;
-    if(isDarkMode) {
-      /* Set window theme to that of a built-in Windows app (Explorer)
-	 because it has dark scroll bars and other UI elements. */
-      if(SetWindowTheme_fn) {
-	SetWindowTheme_fn(hwnd, DARK_MODE_APP_NAME, NULL);
-      }
-      /* Set the titlebar to system dark mode. */
-      if (DwmSetWindowAttribute_fn) {
-	DwmSetWindowAttribute_fn(hwnd,
-				 DWMWA_USE_IMMERSIVE_DARK_MODE,
-				 &isDarkMode,
-				 sizeof(isDarkMode));
-      }
+  if (w32_darkmode) {
+    /* Set window theme to that of a built-in Windows app (Explorer)
+       because it has dark scroll bars and other UI elements. */
+    if(SetWindowTheme_fn) {
+      SetWindowTheme_fn(hwnd, DARK_MODE_APP_NAME, NULL);
+    }
+    /* Set the titlebar to system dark mode. */
+    if (DwmSetWindowAttribute_fn) {
+      DwmSetWindowAttribute_fn
+	(hwnd,
+	 DWMWA_USE_IMMERSIVE_DARK_MODE,
+	 &w32_darkmode,
+	 sizeof(w32_darkmode));
     }
   }
 }
@@ -11091,13 +11079,31 @@ globals_of_w32fns (void)
   set_thread_description = (SetThreadDescription_Proc)
     get_proc_addr (hm_kernel32, "SetThreadDescription");
 
-  /* Load dwmapi and uxtheme for darkmode */
-  HMODULE dwmapi_lib = LoadLibrary("dwmapi.dll");
-  DwmSetWindowAttribute_fn = (DwmSetWindowAttribute_Proc)
-    get_proc_addr (dwmapi_lib, "DwmSetWindowAttribute");
-  HMODULE uxtheme_lib = LoadLibrary("uxtheme.dll");
-  SetWindowTheme_fn = (SetWindowTheme_Proc)
-    get_proc_addr (uxtheme_lib, "SetWindowTheme");
+  /*
+    Support OS dark mode on Windows 10 version 2004 and higher.
+    For future wretches who may need to understand Windows build numbers:
+    https://docs.microsoft.com/en-us/windows/release-health/release-information
+   */
+  if (w32_major_version >= 10 && w32_build_number >= 19041
+      && os_subtype == OS_SUBTYPE_NT) {
+
+    /* Load dwmapi and uxtheme, which will be needed to set window themes. */
+    HMODULE dwmapi_lib = LoadLibrary("dwmapi.dll");
+    DwmSetWindowAttribute_fn = (DwmSetWindowAttribute_Proc)
+      get_proc_addr (dwmapi_lib, "DwmSetWindowAttribute");
+    HMODULE uxtheme_lib = LoadLibrary("uxtheme.dll");
+    SetWindowTheme_fn = (SetWindowTheme_Proc)
+      get_proc_addr (uxtheme_lib, "SetWindowTheme");
+
+    /* Check Windows Registry for system theme. DWORD set to 0 or 1. */
+    LPBYTE val = w32_query_registry
+      ("Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+       "AppsUseLightTheme",
+       NULL);
+    if (val && (DWORD)*val == 0) {
+      w32_darkmode = TRUE;
+    }
+  }
 
   except_code = 0;
   except_addr = 0;
