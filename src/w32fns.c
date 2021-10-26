@@ -73,6 +73,15 @@ along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.  */
 #include <imm.h>
 #include <windowsx.h>
 
+/*
+  Internal/undocumented constants for Windows Dark mode.
+  See: https://github.com/microsoft/WindowsAppSDK/issues/41
+*/
+#define DARK_MODE_APP_NAME L"DarkMode_Explorer"
+#ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
+#define DWMWA_USE_IMMERSIVE_DARK_MODE 20
+#endif
+
 #ifndef FOF_NO_CONNECTED_ELEMENTS
 #define FOF_NO_CONNECTED_ELEMENTS 0x2000
 #endif
@@ -185,6 +194,11 @@ typedef BOOL (WINAPI *IsDebuggerPresent_Proc) (void);
 typedef HRESULT (WINAPI *SetThreadDescription_Proc)
   (HANDLE hThread, PCWSTR lpThreadDescription);
 
+typedef HRESULT (WINAPI * SetWindowTheme_Proc)
+  (IN HWND hwnd, IN LPCWSTR pszSubAppName, IN LPCWSTR pszSubIdList);
+typedef HRESULT (WINAPI * DwmSetWindowAttribute_Proc)
+  (HWND hwnd, DWORD dwAttribute, IN LPCVOID pvAttribute, DWORD cbAttribute);
+
 TrackMouseEvent_Proc track_mouse_event_fn = NULL;
 ImmGetCompositionString_Proc get_composition_string_fn = NULL;
 ImmGetContext_Proc get_ime_context_fn = NULL;
@@ -199,6 +213,8 @@ EnumDisplayMonitors_Proc enum_display_monitors_fn = NULL;
 GetTitleBarInfo_Proc get_title_bar_info_fn = NULL;
 IsDebuggerPresent_Proc is_debugger_present = NULL;
 SetThreadDescription_Proc set_thread_description = NULL;
+SetWindowTheme_Proc SetWindowTheme_fn = NULL;
+DwmSetWindowAttribute_Proc DwmSetWindowAttribute_fn = NULL;
 
 extern AppendMenuW_Proc unicode_append_menu;
 
@@ -251,6 +267,9 @@ DWORD_PTR syspage_mask = 0;
 int w32_major_version;
 int w32_minor_version;
 int w32_build_number;
+
+/* If the OS is set to use dark mode. */
+BOOL w32_darkmode = FALSE;
 
 /* Distinguish between Windows NT and Windows 95.  */
 int os_subtype;
@@ -2279,10 +2298,34 @@ w32_init_class (HINSTANCE hinst)
     }
 }
 
+/* Applies the Windows system theme (light or dark) to a window handle. */
+static void
+w32_applytheme (HWND hwnd)
+{
+  if (w32_darkmode)
+    {
+      /* Set window theme to that of a built-in Windows app (Explorer)
+	 because it has dark scroll bars and other UI elements. */
+      if (SetWindowTheme_fn)
+	{
+	  SetWindowTheme_fn (hwnd, DARK_MODE_APP_NAME, NULL);
+	}
+      /* Set the titlebar to system dark mode. */
+      if (DwmSetWindowAttribute_fn)
+	{
+	  DwmSetWindowAttribute_fn
+	    (hwnd,
+	     DWMWA_USE_IMMERSIVE_DARK_MODE,
+	     &w32_darkmode,
+	     sizeof(w32_darkmode));
+	}
+    }
+}
+
 static HWND
 w32_createvscrollbar (struct frame *f, struct scroll_bar * bar)
 {
-  return CreateWindow ("SCROLLBAR", "",
+  HWND hwnd = CreateWindow ("SCROLLBAR", "",
 		       /* Clip siblings so we don't draw over child
 			  frames.  Apparently this is not always
 			  sufficient so we also try to make bar windows
@@ -2291,12 +2334,15 @@ w32_createvscrollbar (struct frame *f, struct scroll_bar * bar)
 		       /* Position and size of scroll bar.  */
 		       bar->left, bar->top, bar->width, bar->height,
 		       FRAME_W32_WINDOW (f), NULL, hinst, NULL);
+  if (hwnd)
+    w32_applytheme (hwnd);
+  return hwnd;
 }
 
 static HWND
 w32_createhscrollbar (struct frame *f, struct scroll_bar * bar)
 {
-  return CreateWindow ("SCROLLBAR", "",
+  HWND hwnd = CreateWindow ("SCROLLBAR", "",
 		       /* Clip siblings so we don't draw over child
 			  frames.  Apparently this is not always
 			  sufficient so we also try to make bar windows
@@ -2305,6 +2351,9 @@ w32_createhscrollbar (struct frame *f, struct scroll_bar * bar)
 		       /* Position and size of scroll bar.  */
 		       bar->left, bar->top, bar->width, bar->height,
 		       FRAME_W32_WINDOW (f), NULL, hinst, NULL);
+  if (hwnd)
+    w32_applytheme (hwnd);
+  return hwnd;
 }
 
 static void
@@ -2389,6 +2438,9 @@ w32_createwindow (struct frame *f, int *coords)
 
       /* Enable drag-n-drop.  */
       DragAcceptFiles (hwnd, TRUE);
+
+      /* Enable system light/dark theme. */
+      w32_applytheme (hwnd);
 
       /* Do this to discard the default setting specified by our parent. */
       ShowWindow (hwnd, SW_HIDE);
@@ -11027,6 +11079,35 @@ globals_of_w32fns (void)
     get_proc_addr (hm_kernel32, "IsDebuggerPresent");
   set_thread_description = (SetThreadDescription_Proc)
     get_proc_addr (hm_kernel32, "SetThreadDescription");
+
+  /* Support OS dark mode on Windows 10 version 2004 and higher.
+     For future wretches who may need to understand Windows build numbers:
+     https://docs.microsoft.com/en-us/windows/release-health/release-information
+  */
+  if (w32_major_version >= 10 && w32_build_number >= 19041
+      && os_subtype == OS_SUBTYPE_NT)
+    {
+      /* Load dwmapi and uxtheme, which will be needed to set window themes. */
+      HMODULE dwmapi_lib = LoadLibrary("dwmapi.dll");
+      DwmSetWindowAttribute_fn = (DwmSetWindowAttribute_Proc)
+	get_proc_addr (dwmapi_lib, "DwmSetWindowAttribute");
+      HMODULE uxtheme_lib = LoadLibrary("uxtheme.dll");
+      SetWindowTheme_fn = (SetWindowTheme_Proc)
+	get_proc_addr (uxtheme_lib, "SetWindowTheme");
+
+      /* Check Windows Registry for system theme. DWORD set to 0 or 1.
+	 TODO: "Nice to have" would be to create a lisp setting (which
+	 defaults to this Windows Registry value), then read that lisp
+	 value here instead. This would allow the user to forcibly
+	 override the system theme (which is also user-configurable in
+	 Windows settings; see MS-Windows section in Emacs manual). */
+      LPBYTE val = w32_get_resource
+	("Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+	 "AppsUseLightTheme",
+	 NULL);
+      if (val && (DWORD)*val == 0)
+	w32_darkmode = TRUE;
+    }
 
   except_code = 0;
   except_addr = 0;
