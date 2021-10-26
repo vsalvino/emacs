@@ -5670,7 +5670,8 @@ w32_default_font_parameter (struct frame *f, Lisp_Object parms)
     {
       int i;
       static const char *names[]
-	= { "Courier New-10",
+	= { "Consolas-12",
+	    "Courier New-10",
 	    "-*-Courier-normal-r-*-*-13-*-*-*-c-*-iso8859-1",
 	    "-*-Fixedsys-normal-r-*-*-12-*-*-*-c-*-iso8859-1",
 	    "Fixedsys",
