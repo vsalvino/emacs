@@ -1,11 +1,10 @@
 Emacs for Windows with Dark Mode
 ================================
 
-This is an experimental build of Emacs for Windows 10 (1809 and
+This is a build of Emacs (from master branch) for Windows 10 (1809 and
 higher) and Windows 11 which follows Windows light/dark mode (titlebar
-and scollbars). See the `vsalvino/darkmode-patch` branch in this
-repository for a diff of only the relevant changes, exluding my build
-scripts and README.
+and scollbars). See [this pull request](https://github.com/vsalvino/emacs/pull/1)
+for a diff of only the relevant changes, exluding my build scripts and README.
 
 Example with Windows Dark mode and Light mode:
 
@@ -29,10 +28,8 @@ Download
 --------
 Download `emacs-darkmode.zip` from the latest
 [release](https://github.com/vsalvino/emacs/releases), extract to your
-machine, and launch `bin/runemacs.exe`. Since I use this as my daily
-driver I have intentionally compiled the build with no debugging, high
-optimization, and only for Intel Skylake (6th-ish gen) processors and
-higher.
+machine, and launch `bin/runemacs.exe`. Releases are built for Windows
+64-bit on Intel Skylake (6th-ish gen) CPUs and higher.
 
 TODO
 ----
