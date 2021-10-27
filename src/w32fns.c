@@ -78,6 +78,9 @@ along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.  */
   See: https://github.com/microsoft/WindowsAppSDK/issues/41
 */
 #define DARK_MODE_APP_NAME L"DarkMode_Explorer"
+/* For Windows 10 version 1809, 1903, 1909. */
+#define DWMWA_USE_IMMERSIVE_DARK_MODE_OLD 19
+/* For Windows 10 version 2004 and higher, and Windows 11. */
 #ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
 #define DWMWA_USE_IMMERSIVE_DARK_MODE 20
 #endif
@@ -2313,11 +2316,13 @@ w32_applytheme (HWND hwnd)
       /* Set the titlebar to system dark mode. */
       if (DwmSetWindowAttribute_fn)
 	{
+	  /* Windows 10 version 2004 and up, Windows 11. */
+	  DWORD attr = DWMWA_USE_IMMERSIVE_DARK_MODE;
+	  /* Windows 10 older than 2004. */
+	  if (w32_build_number < 19041)
+	    attr = DWMWA_USE_IMMERSIVE_DARK_MODE_OLD;
 	  DwmSetWindowAttribute_fn
-	    (hwnd,
-	     DWMWA_USE_IMMERSIVE_DARK_MODE,
-	     &w32_darkmode,
-	     sizeof(w32_darkmode));
+	    (hwnd, attr, &w32_darkmode, sizeof(w32_darkmode));
 	}
     }
 }
@@ -11080,11 +11085,12 @@ globals_of_w32fns (void)
   set_thread_description = (SetThreadDescription_Proc)
     get_proc_addr (hm_kernel32, "SetThreadDescription");
 
-  /* Support OS dark mode on Windows 10 version 2004 and higher.
+  /* Support OS dark mode on Windows 10 version 1809 and higher.
+     See `w32_applytheme` which uses appropriate APIs per version of Windows.
      For future wretches who may need to understand Windows build numbers:
      https://docs.microsoft.com/en-us/windows/release-health/release-information
   */
-  if (w32_major_version >= 10 && w32_build_number >= 19041
+  if (w32_major_version >= 10 && w32_build_number >= 17763
       && os_subtype == OS_SUBTYPE_NT)
     {
       /* Load dwmapi and uxtheme, which will be needed to set window themes. */
