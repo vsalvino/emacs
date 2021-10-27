@@ -1,13 +1,13 @@
 Emacs for Windows with Dark Mode
 ================================
 
-This is an experimental build of Emacs for Windows 10 (2004 and
+This is an experimental build of Emacs for Windows 10 (1809 and
 higher) and Windows 11 which follows Windows light/dark mode (titlebar
 and scollbars). See the `vsalvino/darkmode-patch` branch in this
 repository for a diff of only the relevant changes, exluding my build
 scripts and README.
 
-Example in in Windows Dark mode and Light mode:
+Example with Windows Dark mode and Light mode:
 
 ![image](https://user-images.githubusercontent.com/13453401/138809142-0f4d10a4-a6f6-45ef-b068-041c12ba8b63.png)
 
@@ -15,8 +15,8 @@ Example in in Windows Dark mode and Light mode:
 
 Caveats
 -------
-* This dark mode implementation is only available in Windows 10
-  version 2004 or higher. If you run it on an older system it should
+* This dark mode implementation is only available in supported
+  versions of Windows. If you run it on an older system it should
   behave as usual.
 * This is using an internal (undocumented) Windows API. Therefore it
   could technically change at any time. Microsoft has notoriously not
