@@ -8,7 +8,7 @@ $env:CHERE_INVOKING = 'yes'  # Preserve the current working directory
 $env:MSYSTEM = 'MINGW64'  # Start a 64 bit Mingw environment
 
 # Set desired gcc flags.
-$CFLAGS = '-O3 -g0 -march=skylake'
+$CFLAGS = '-O3 -g0 -static -march=skylake'
 
 # Get current git hash ID.
 $gitHash = (& git rev-parse --short HEAD).Trim()
@@ -25,31 +25,31 @@ $unx_insdir = $win_insdir -replace "\\","/" -replace "C\:","/c"
 #git rebase upstream/master
 
 # Refresh mingw packages.
-#& "C:\msys64\usr\bin\bash" -lc "set -ex; \
-#  pacman -Syuu --noconfirm
-#"
+& "C:\msys64\usr\bin\bash" -lc "set -ex; \
+  pacman -Syuu --noconfirm
+"
 
 # Install mingw dependencies.
-#& "C:\msys64\usr\bin\bash" -lc "set -ex; \
-#  pacman -S --noconfirm --needed --overwrite '*' \
-#  base-devel \
-#  binutils \
-#  git \
-#  mingw-w64-x86_64-giflib \
-#  mingw-w64-x86_64-gnutls \
-#  mingw-w64-x86_64-harfbuzz \
-#  mingw-w64-x86_64-jansson \
-#  mingw-w64-x86_64-lcms2 \
-#  mingw-w64-x86_64-libjpeg-turbo \
-#  mingw-w64-x86_64-libpng \
-#  mingw-w64-x86_64-librsvg \
-#  mingw-w64-x86_64-libtiff \
-#  mingw-w64-x86_64-libxml2 \
-#  mingw-w64-x86_64-toolchain \
-#  mingw-w64-x86_64-xpm-nox \
-#  mingw-w64-x86_64-zlib \
-#  zip
-#"
+& "C:\msys64\usr\bin\bash" -lc "set -ex; \
+  pacman -S --noconfirm --needed --overwrite '*' \
+  base-devel \
+  binutils \
+  git \
+  mingw-w64-x86_64-giflib \
+  mingw-w64-x86_64-gnutls \
+  mingw-w64-x86_64-harfbuzz \
+  mingw-w64-x86_64-jansson \
+  mingw-w64-x86_64-lcms2 \
+  mingw-w64-x86_64-libjpeg-turbo \
+  mingw-w64-x86_64-libpng \
+  mingw-w64-x86_64-librsvg \
+  mingw-w64-x86_64-libtiff \
+  mingw-w64-x86_64-libxml2 \
+  mingw-w64-x86_64-toolchain \
+  mingw-w64-x86_64-xpm-nox \
+  mingw-w64-x86_64-zlib \
+  zip
+"
 
 # Setup
 Write-Host -ForegroundColor Cyan "Running autogen.sh..."
