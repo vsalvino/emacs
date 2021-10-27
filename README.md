@@ -7,7 +7,11 @@ and scollbars). See the `vsalvino/darkmode-patch` branch in this
 repository for a diff of only the relevant changes, exluding my build
 scripts and README.
 
-![image](https://user-images.githubusercontent.com/13453401/138581502-b496fe4e-5a49-4017-bac9-d8173469e0e8.png)
+Example in in Windows Dark mode and Light mode:
+
+![image](https://user-images.githubusercontent.com/13453401/138809142-0f4d10a4-a6f6-45ef-b068-041c12ba8b63.png)
+
+![image](https://user-images.githubusercontent.com/13453401/138809293-824ed605-aee5-4041-b446-9fb2e8bf2ab2.png)
 
 Caveats
 -------
