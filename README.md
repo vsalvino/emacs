@@ -35,9 +35,8 @@ TODO
 * ~~Dark titlebars~~
 * ~~Dark scrollbars~~
 * Dark menu bar and/or menu items
-* Dark tool bar
-* ~~Dark tab bar mode~~ (tab bar colors can be customized via faces,
-  e.g. see the `modus-vivendi` theme)
+* ~~Dark tool bar~~ (tool bar colors can be customized via faces)
+* ~~Dark tab bar mode~~ (tab bar colors can be customized via faces)
 * ~~Follow system light/dark mode.~~ This is loaded from the Windows
   Registry when Emacs is launched.
 
