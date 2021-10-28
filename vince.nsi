@@ -2,7 +2,7 @@
 !include LogicLib.nsh
 !include x64.nsh
 
-Outfile "${OUTDIR}/emacs-darkmode-${OUT_VERSION}-installer.exe"
+Outfile "emacs-darkmode-${OUT_VERSION}-installer.exe"
 
 
 SetCompressor /solid lzma
@@ -12,17 +12,17 @@ Var StartMenuFolder
 
 !define MUI_WELCOMEPAGE_TITLE "Emacs"
 !define MUI_WELCOMEPAGE_TITLE_3LINES
-!define MUI_WELCOMEPAGE_TEXT "Vince's Emacs for Windows with Dark Mode"
+!define MUI_WELCOMEPAGE_TEXT "Vince's Emacs for Windows, with dark mode! (version ${OUT_VERSION})"
 
-!define MUI_WELCOMEFINISHPAGE_BITMAP "${EDIR}\share\emacs\${EMACS_VERSION}\etc\images\splash.bmp"
-!define MUI_ICON "emacs-${VERSION_BRANCH}\share\emacs\${EMACS_VERSION}\etc\images\icons\hicolor\scalable\apps\emacs.ico"
-!define MUI_UNICON "${EDIR}\share\emacs\${EMACS_VERSION}\etc\images\icons\hicolor\scalable\apps\emacs.ico"
+!define MUI_WELCOMEFINISHPAGE_BITMAP "${OUT_VERSION}\share\emacs\${EMACS_VERSION}\etc\images\splash.bmp"
+!define MUI_ICON "${OUT_VERSION}\share\emacs\${EMACS_VERSION}\etc\images\icons\hicolor\scalable\apps\emacs.ico"
+!define MUI_UNICON "${OUT_VERSION}\share\emacs\${EMACS_VERSION}\etc\images\icons\hicolor\scalable\apps\emacs.ico"
 
 !insertmacro MUI_PAGE_WELCOME
 
 
 !define MUI_LICENSEPAGE_TEXT_TOP "The GNU General Public License"
-!insertmacro MUI_PAGE_LICENSE "${EDIR}\share\emacs\${EMACS_VERSION}\lisp\COPYING"
+!insertmacro MUI_PAGE_LICENSE "${OUT_VERSION}\share\emacs\${EMACS_VERSION}\lisp\COPYING"
 
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
@@ -44,7 +44,7 @@ Section
 
   SetOutPath $INSTDIR
 
-  File /r ${EDIR}
+  File /r ${OUT_VERSION}
 
   # define uninstaller name
   WriteUninstaller $INSTDIR\Uninstall.exe
@@ -55,7 +55,7 @@ Section
   CreateShortcut "$SMPROGRAMS\$StartMenuFolder\Uninstall.lnk" "$INSTDIR\Uninstall.exe"
 
   !insertmacro MUI_STARTMENU_WRITE_END
-  CreateShortCut "$SMPROGRAMS\$StartMenuFolder\Emacs.lnk" "$INSTDIR\${EDIR}\bin\runemacs.exe"
+  CreateShortCut "$SMPROGRAMS\$StartMenuFolder\Emacs.lnk" "$INSTDIR\${OUT_VERSION}\bin\runemacs.exe"
 SectionEnd
 
 
