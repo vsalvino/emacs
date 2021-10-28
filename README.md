@@ -12,24 +12,15 @@ Example with Windows Dark mode and Light mode:
 
 ![image](https://user-images.githubusercontent.com/13453401/138809293-824ed605-aee5-4041-b446-9fb2e8bf2ab2.png)
 
-Caveats
--------
-* This dark mode implementation is only available in supported
-  versions of Windows. If you run it on an older system it should
-  behave as usual.
-* This is using an internal (undocumented) Windows API. Therefore it
-  could technically change at any time. Microsoft has notoriously not
-  published an API to enable dark mode on Win32 apps. However many
-  apps have "figured it out" and started using it out of desperation
-  (see "Inspiration" below). These APIs seem to have "settled" and
-  have been consistent for the past several releases of Windows.
-
 Download
 --------
 Download `emacs-darkmode.zip` from the latest
 [release](https://github.com/vsalvino/emacs/releases), extract to your
-machine, and launch `bin/runemacs.exe`. Releases are built for Windows
-64-bit on Intel Skylake (6th-ish gen) CPUs and higher.
+machine, and launch `bin/runemacs.exe`. Or download
+`emacs-darkmode-installer.exe` if you prefer to install Emacs.
+Releases are 64-bit, built for Intel Skylake (6th gen) CPUs and newer.
+
+If you have an older CPU, let me know and I can produce a build.
 
 TODO
 ----
