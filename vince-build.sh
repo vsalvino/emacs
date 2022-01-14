@@ -16,7 +16,7 @@ then
 fi
 
 # Set desired gcc flags.
-CFLAGS='-O3 -g0 -static -march=skylake'
+CFLAGS='-O3 -g0 -march=skylake'
 
 # Get current git hash ID.
 gitHash=$(git rev-parse --short HEAD)
@@ -63,6 +63,7 @@ pacman -S --noconfirm --needed --overwrite '*' \
     --prefix="${unx_srcdir}" \
     --with-file-notification=w32 \
     --with-json \
+    --with-native-compilation \
     --with-w32 \
     --without-compress-install \
     --without-dbus \
@@ -78,7 +79,7 @@ pacman -S --noconfirm --needed --overwrite '*' \
     CFLAGS="${CFLAGS}";
 
 # Compile.
-make -j4
+make NATIVE_FULL_AOT=1 -j$(nproc)
 
 # Install.
 make install prefix="${unx_insdir}"
