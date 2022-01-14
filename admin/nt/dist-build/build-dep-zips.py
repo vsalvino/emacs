@@ -44,6 +44,7 @@ mingw-w64-x86_64-xpm-nox'''.split()
 DLL_REQ='''libgif
 libgnutls
 libharfbuzz
+libgccjit
 libjansson
 liblcms2
 libturbojpeg
@@ -136,7 +137,7 @@ def immediate_deps(pkgs):
     dependencies = functools.reduce(operator.iconcat, dependencies, [])
 
     ## Remove > signs TODO can we get any other punctuation here?
-    dependencies = [d.split(">")[0] for d in dependencies if d]
+    dependencies = [d.split(">")[0].split("=")[0] for d in dependencies if d]
     dependencies = [d for d in dependencies if not d == "None"]
 
     dependencies = [MUNGE_DEP_PKGS.get(d, d) for d in dependencies]
