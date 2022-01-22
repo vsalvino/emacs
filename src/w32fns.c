@@ -86,6 +86,7 @@ typedef enum _WTS_VIRTUAL_CLASS {
   See: https://github.com/microsoft/WindowsAppSDK/issues/41
 */
 #define DARK_MODE_APP_NAME L"DarkMode_Explorer"
+#define LIGHT_MODE_APP_NAME L"Explorer"
 /* For Windows 10 version 1809, 1903, 1909. */
 #ifndef DWMWA_USE_IMMERSIVE_DARK_MODE_OLD
 #define DWMWA_USE_IMMERSIVE_DARK_MODE_OLD 19
@@ -305,8 +306,24 @@ int w32_major_version;
 int w32_minor_version;
 int w32_build_number;
 
+/* If the OS supports light/dark mode. */
+BOOL w32_supports_darkmode = FALSE;
 /* If the OS is set to use dark mode.  */
 BOOL w32_darkmode = FALSE;
+
+/* Track ALL window handles so they can be updated if the Windows
+   light/dark mode theme is changed. Each frame could have somehwere
+   between 1-6 HWNDs depending on which GUI features are enabled by
+   the user.
+
+   TODO: Convert this to something more dynamic:
+   * Remove upper limit (256) of HWNDs.
+   * When a HWND is destroyed it should be removed from this list
+     (just for sake of memory management cleanliness; it does not
+     actually cause a problem to make w32 calls to dead HWNDs).
+*/
+HWND g_hwnds[256];
+int g_hwnds_idx = -1;
 
 /* Distinguish between Windows NT and Windows 95.  */
 int os_subtype;
@@ -2404,19 +2421,50 @@ w32_init_class (HINSTANCE hinst)
     }
 }
 
-/* Applies the Windows system theme (light or dark) to the window
-   handle HWND.  */
-static void
-w32_applytheme (HWND hwnd)
+
+/* Gets the preferred Windows app mode:
+   * FALSE = Light mode (this is equivalent to the user specifying
+             Light, or the absence of any setting)
+   * TRUE = Dark mode (added in Windows 10 1809). */
+static BOOL
+w32_querydarkmode (void)
 {
-  if (w32_darkmode && w32_follow_system_dark_mode)
+  if (w32_supports_darkmode && w32_follow_system_dark_mode)
+    {
+      /* Check Windows Registry for system theme.
+	 TODO: "Nice to have" would be to create a lisp setting (which
+	 defaults to this Windows Registry value), then read that lisp
+	 value here instead. This would allow the user to forcibly
+	 override the system theme (which is also user-configurable in
+	 Windows settings; see MS-Windows section in Emacs manual). */
+      LPBYTE val =
+	w32_get_resource ("Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+			  "AppsUseLightTheme",
+			  NULL);
+      return val && *val == 0;
+    }
+  return FALSE;
+}
+
+/* Applies the Windows system theme (light or dark) to the window
+   handle HWND. `track` should generally be TRUE to keep a reference
+   to this HWND for future use. */
+static void
+w32_applytheme (HWND hwnd, bool track)
+{
+  if (w32_supports_darkmode && w32_follow_system_dark_mode)
     {
       /* Set window theme to that of a built-in Windows app (Explorer),
 	 because it has dark scroll bars and other UI elements.  */
       if (SetWindowTheme_fn)
-	SetWindowTheme_fn (hwnd, DARK_MODE_APP_NAME, NULL);
+	{
+	  if (w32_darkmode)
+	    SetWindowTheme_fn (hwnd, DARK_MODE_APP_NAME, NULL);
+	  else
+	    SetWindowTheme_fn (hwnd, LIGHT_MODE_APP_NAME, NULL);
+	}
 
-      /* Set the titlebar to system dark mode.  */
+      /* Toggle darkmode titlebar on or off.  */
       if (DwmSetWindowAttribute_fn)
 	{
 	  /* Windows 10 version 2004 and up, Windows 11.  */
@@ -2424,8 +2472,25 @@ w32_applytheme (HWND hwnd)
 	  /* Windows 10 older than 2004.  */
 	  if (w32_build_number < 19041)
 	    attr = DWMWA_USE_IMMERSIVE_DARK_MODE_OLD;
+	  /* Toggle dark mode flag based on value of `w32_darkmode` */
 	  DwmSetWindowAttribute_fn (hwnd, attr,
 				    &w32_darkmode, sizeof (w32_darkmode));
+	}
+
+      /* After applying the theme, add the HWND to our global list so
+	 it can be changed later if the OS light/dark mode theme is
+	 changed. */
+      if(track)
+	{
+	  if(g_hwnds_idx < 256)
+	    {
+	      g_hwnds_idx++;
+	      g_hwnds[g_hwnds_idx] = hwnd;
+	    }
+	  else
+	    {
+	      printf("Number of window handles has exceeded capacity!");
+	    }
 	}
     }
 }
@@ -2443,7 +2508,7 @@ w32_createvscrollbar (struct frame *f, struct scroll_bar * bar)
 		       bar->left, bar->top, bar->width, bar->height,
 		       FRAME_W32_WINDOW (f), NULL, hinst, NULL);
   if (hwnd)
-    w32_applytheme (hwnd);
+    w32_applytheme (hwnd, TRUE);
   return hwnd;
 }
 
@@ -2460,7 +2525,7 @@ w32_createhscrollbar (struct frame *f, struct scroll_bar * bar)
 		       bar->left, bar->top, bar->width, bar->height,
 		       FRAME_W32_WINDOW (f), NULL, hinst, NULL);
   if (hwnd)
-    w32_applytheme (hwnd);
+    w32_applytheme (hwnd, TRUE);
   return hwnd;
 }
 
@@ -2551,7 +2616,7 @@ w32_createwindow (struct frame *f, int *coords)
       DragAcceptFiles (hwnd, TRUE);
 
       /* Enable system light/dark theme.  */
-      w32_applytheme (hwnd);
+      w32_applytheme (hwnd, TRUE);
 
       /* Do this to discard the default setting specified by our parent. */
       ShowWindow (hwnd, SW_HIDE);
@@ -5395,6 +5460,23 @@ w32_wnd_proc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	 changed, so if Emacs is interested in some of them, it could
 	 update its internal values.  */
       my_post_msg (&wmsg, hwnd, msg, wParam, lParam);
+
+      /* Check if settings changed Light/Dark mode.
+	 Re-lookup the setting and update the HWNDs accordingly. */
+      if(w32_supports_darkmode)
+	{
+	  BOOL new_darkmode = w32_querydarkmode();
+	  if (w32_darkmode != new_darkmode)
+	    {
+	      w32_darkmode = new_darkmode;
+	      /* Loop through all known HWNDs and apply theme */
+	      for(int i=0; i<=g_hwnds_idx; i++)
+		{
+		  w32_applytheme(g_hwnds[i], false);
+		}
+	    }
+	}
+
       goto dflt;
 
     case WM_SETFOCUS:
@@ -11533,6 +11615,7 @@ globals_of_w32fns (void)
   if (os_subtype == OS_SUBTYPE_NT
       && w32_major_version >= 10 && w32_build_number >= 17763)
     {
+      w32_supports_darkmode = TRUE;
       /* Load dwmapi.dll and uxtheme.dll, which will be needed to set
 	 window themes.  */
       HMODULE dwmapi_lib = LoadLibrary("dwmapi.dll");
@@ -11541,19 +11624,8 @@ globals_of_w32fns (void)
       HMODULE uxtheme_lib = LoadLibrary("uxtheme.dll");
       SetWindowTheme_fn = (SetWindowTheme_Proc)
 	get_proc_addr (uxtheme_lib, "SetWindowTheme");
-
-      /* Check Windows Registry for system theme and set w32_darkmode.
-	 TODO: "Nice to have" would be to create a lisp setting (which
-	 defaults to this Windows Registry value), then read that lisp
-	 value here instead. This would allow the user to forcibly
-	 override the system theme (which is also user-configurable in
-	 Windows settings; see MS-Windows section in Emacs manual). */
-      LPBYTE val =
-	w32_get_resource ("Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
-			  "AppsUseLightTheme",
-			  NULL);
-      if (val && *val == 0)
-	w32_darkmode = TRUE;
+      /* Set the preferred mode from OS settings. */
+      w32_darkmode = w32_querydarkmode();
     }
 
   except_code = 0;
