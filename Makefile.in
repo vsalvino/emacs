@@ -634,7 +634,7 @@ install-arch-indep: lisp install-info install-man ${INSTALL_ARCH_INDEP_EXTRA}
 	      [ "$${dir}" != "${srcdir}/etc" ] && \
 	        rm -f $${subdir}/[mM]akefile*[.-]in $${subdir}/[mM]akefile ; \
 	    done ); \
-	  find "$${dest}" -exec chown $${installuser} {} ';' ;\
+	  #find "$${dest}" -exec chown $${installuser} {} ';' ;\
 	done
 	-rm -f "$(DESTDIR)${lispdir}/subdirs.el"
 	umask 022; $(srcdir)/build-aux/update-subdirs "$(DESTDIR)${lispdir}"

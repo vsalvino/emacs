@@ -225,7 +225,7 @@ def clean():
     os.path.isfile("download.log") and os.remove("download.log")
 
 
-if(os.environ["MSYSTEM"] != "MSYS"):
+if(os.environ["MSYSTEM"] not in ["MSYS", "MINGW64"]):
     print("Run this script in an MSYS-shell!")
     exit(1)
 
@@ -268,7 +268,7 @@ if( do_all):
 
 if( do_all or args.r ):
     deps=extract_deps()
-    gather_source(deps)
+    # gather_source(deps)  # Currently broken, 404s.
 
 if( args.c ):
     clean()
