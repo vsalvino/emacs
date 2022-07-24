@@ -20,6 +20,7 @@ pacman -Syuu --noconfirm
 
 # Install mingw dependencies.
 pacman -S --noconfirm --needed --overwrite '*' \
+       autoconf \
        base-devel \
        binutils \
        git \
