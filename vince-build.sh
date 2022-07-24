@@ -15,22 +15,6 @@ then
     exit 1
 fi
 
-# Set desired gcc flags.
-CFLAGS='-O3 -g0 -march=skylake'
-
-# Get current git hash ID.
-gitHash=$(git rev-parse --short HEAD)
-
-# File paths.
-unx_srcdir=$(pwd)
-unx_insroot="${unx_srcdir}/_install"
-unx_insdir="${unx_insroot}/${gitHash}"
-unx_depdir="${unx_srcdir}/_deps"
-rm -rf "${unx_insdir}";
-mkdir -p "${unx_insdir}"
-rm -rf "${unx_depdir}"
-mkdir -p "${unx_depdir}"
-
 # Refresh mingw packages.
 pacman -Syuu --noconfirm
 
@@ -56,6 +40,22 @@ pacman -S --noconfirm --needed --overwrite '*' \
        mingw-w64-x86_64-xpm-nox \
        mingw-w64-x86_64-zlib \
        zip
+
+# Set desired gcc flags.
+CFLAGS='-O3 -g0 -march=skylake'
+
+# Get current git hash ID.
+gitHash=$(git rev-parse --short HEAD)
+
+# File paths.
+unx_srcdir=$(pwd)
+unx_insroot="${unx_srcdir}/_install"
+unx_insdir="${unx_insroot}/${gitHash}"
+unx_depdir="${unx_srcdir}/_deps"
+rm -rf "${unx_insdir}";
+mkdir -p "${unx_insdir}"
+rm -rf "${unx_depdir}"
+mkdir -p "${unx_depdir}"
 
 # Setup.
 ./autogen.sh
