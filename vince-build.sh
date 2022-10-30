@@ -55,6 +55,7 @@ pacman -S --noconfirm --needed --overwrite '*' \
        mingw-w64-x86_64-toolchain \
        mingw-w64-x86_64-xpm-nox \
        mingw-w64-x86_64-zlib \
+       python3 \
        zip
 
 # Setup.
