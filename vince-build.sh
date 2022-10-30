@@ -16,7 +16,7 @@ then
 fi
 
 # Set desired gcc flags.
-CFLAGS='-O3 -g0 -march=skylake'
+CFLAGS='-O3 -g0 -march=alderlake'
 
 # Get current git hash ID.
 gitHash=$(git rev-parse --short HEAD)
