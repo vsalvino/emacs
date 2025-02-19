@@ -129,7 +129,7 @@ libxml2-2.dll
 zlib1.dll
 liblcms2-2.dll
 libgccjit-0.dll
-libtree-sitter.dll'''.split()
+libtree-sitter-0.25.dll'''.split()
     # job_args=[NEW_EMACS, "--batch", "--eval", ELISP_PROG]
     # #print("args: ", job_args)
     # return subprocess.check_output(job_args, stderr=subprocess.STDOUT
@@ -178,7 +178,7 @@ MUNGE_SRC_PKGS={
 }
 MUNGE_DEP_PKGS={
     "mingw-w64-x86_64-libwinpthread":"mingw-w64-x86_64-libwinpthread-git",
-    "mingw-w64-x86_64-libtre": "mingw-w64-x86_64-libtre-git",
+    # "mingw-w64-x86_64-libtre": "mingw-w64-x86_64-libtre-git",
 }
 SRC_EXT={
     "mingw-w64-freetype": ".src.tar.zst",
@@ -218,7 +218,7 @@ SRC_EXT={
     "mingw-w64-libtasn": ".src.tar.zst",
     "mingw-w64-libthai": ".src.tar.zst",
     "mingw-w64-libtiff": ".src.tar.zst",
-    "mingw-w64-libtre-git": ".src.tar.zst",
+    "mingw-w64-libtre": ".src.tar.zst",
     "mingw-w64-libwebp": ".src.tar.zst",
     "mingw-w64-mpdecimal": ".src.tar.zst",
     "mingw-w64-nettle": ".src.tar.zst",
@@ -259,7 +259,7 @@ def immediate_deps(pkg):
     dependencies = dependencies.strip().split(" ")
 
     ## Remove > signs TODO can we get any other punctuation here?
-    dependencies = [d.split(">")[0] for d in dependencies if d]
+    dependencies = [d.split(">")[0].split("=")[0] for d in dependencies if d]
     dependencies = [d for d in dependencies if not d == "None"]
 
     dependencies = [MUNGE_DEP_PKGS.get(d, d) for d in dependencies]
@@ -358,7 +358,7 @@ def clean():
     os.path.isfile("download.log") and os.remove("download.log")
 
 
-if(os.environ["MSYSTEM"] != "MSYS"):
+if(os.environ["MSYSTEM"] not in ["MSYS", "MINGW64"]):
     print("Run this script in an MSYS-shell!")
     exit(1)
 
